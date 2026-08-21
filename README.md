@@ -1,48 +1,92 @@
 # VPNGateSub
 
-**中文** | [English](README_EN.md)
+**English** | [中文](README_CN.md)
 
-自动从 [VPN Gate](https://www.vpngate.net) 公共节点列表拉取支持 **OpenVPN** 的服务器，并生成 **sing-box** 与 **mihomo (Clash.Meta)** 配置文件，由 GitHub Actions 定时更新。
+Automatically fetch public [VPN Gate](https://www.vpngate.net) servers that support **OpenVPN**, parse embedded certificates, and generate **sing-box** and **mihomo (Clash.Meta)** configuration files. Automated and updated daily via GitHub Actions.
 
-## 使用方法
+## Features
 
-1. Fork / 推送本仓库到 GitHub（Actions 默认开启）。
-2. 工作流每日自动运行一次（UTC 00:00，即北京时间 08:00），也可在 **Actions → Update VPN configs → Run workflow** 手动触发（可指定节点数量与国家过滤）。
-3. 运行成功后，`output/` 目录中的配置文件会自动提交，直接用 raw 链接订阅：
+- **Country Grouping & Auto-Selection**: Nodes are automatically classified by country (with country flag emojis). Includes country-level URL-test groups (`🇯🇵 JP-AUTO`) and manual selection groups (`🇯🇵 JP`).
+- **Global Smart Routing**: Comes with a global auto-speed test group (`AUTO`) and a primary selection group (`PROXY`).
+- **Dual Client Support**:
+  - **sing-box** (≥ 1.14): Full configuration with modern `openvpn-client` endpoints, mixed inbound, DNS hijacking, and selector/urltest outbound groups.
+  - **mihomo (Clash.Meta)**: Standard configuration with inline CA/cert/key certificates, URL-test and select proxy groups.
+- **Zero Third-Party Dependencies**: The generator script uses only the Python 3 standard library.
+- **Daily Automated Updates**: Runs automatically via GitHub Actions every day at 00:00 UTC.
 
-   ```
-   https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/output/singbox.json
-   https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/output/mihomo.yaml
-   ```
+---
 
-## 生成文件
+## Subscription Links
 
-| 文件 | 说明 |
-| --- | --- |
-| `output/singbox.json` | sing-box 完整配置（OpenVPN 节点为 `openvpn-client` endpoint，需 sing-box ≥ 1.14；含 mixed 入站 127.0.0.1:2080、selector/urltest 分组） |
-| `output/mihomo.yaml` | mihomo 配置（`type: openvpn` 代理，含 ca/cert/key 内联证书、select + url-test 分组、mixed 端口 7890） |
+Subscribe directly in your client using the raw URLs from this repository:
 
-## 本地运行
-
-仅需 Python 3.9+（纯标准库，无第三方依赖）：
-
-```bash
-python scripts/fetch_vpngate.py                       # 默认取全部节点
-python scripts/fetch_vpngate.py --limit 50            # 前 50 个节点
-python scripts/fetch_vpngate.py --countries JP,US     # 只保留日本/美国
-python scripts/fetch_vpngate.py --min-speed 10 --max-ping 300   # 速度/延迟过滤
-python scripts/fetch_vpngate.py --sort speed          # 按速度排序（score/speed/ping）
+```
+https://raw.githubusercontent.com/<YourUsername>/<RepoName>/main/output/singbox.json
+https://raw.githubusercontent.com/<YourUsername>/<RepoName>/main/output/mihomo.yaml
 ```
 
-常用参数：`--url`（API 地址）、`--output-dir`（输出目录）、`--retries`/`--timeout`。
+---
 
-## 工作原理
+## Generated Files
 
-1. 拉取 `https://www.vpngate.net/api/iphone/` 的 CSV 列表；
-2. 筛选 `OpenVPN_ConfigData_Base64` 非空（即支持 OpenVPN）的条目，按评分/速度排序并去重；
-3. 解码内嵌的 `.ovpn` 配置，提取服务器地址、端口、协议（UDP/TCP）与 CA/客户端证书/私钥；
-4. 分别渲染为 sing-box endpoint 与 mihomo proxy 格式写入 `output/`。
+| File | Description |
+| --- | --- |
+| `output/singbox.json` | Complete sing-box config (`openvpn-client` endpoints, requires sing-box ≥ 1.14; mixed inbound on `127.0.0.1:2080`, selector & urltest groups). |
+| `output/mihomo.yaml` | Complete mihomo / Clash.Meta config (`type: openvpn` proxies with inline certificates, mixed port `7890`, selector & url-test groups). |
 
-## 免责声明
+---
 
-本项目仅用于学习与研究。VPN Gate 是日本筑波大学的学术实验项目，请遵守当地法律法规，勿用于非法用途。
+## Local Usage
+
+Requires Python 3.9+ (Standard Library only):
+
+```bash
+# Fetch all nodes by default
+python scripts/fetch_vpngate.py
+
+# Limit to top 50 nodes
+python scripts/fetch_vpngate.py --limit 50
+
+# Filter by country codes (e.g. Japan and United States only)
+python scripts/fetch_vpngate.py --countries JP,US
+
+# Filter by minimum speed (Mbps) and maximum ping (ms)
+python scripts/fetch_vpngate.py --min-speed 10 --max-ping 300
+
+# Sort nodes by speed (options: score, speed, ping)
+python scripts/fetch_vpngate.py --sort speed
+```
+
+### CLI Arguments
+
+- `--limit`: Maximum number of nodes (`0` = all nodes, default: `0`).
+- `--countries`: Comma-separated list of 2-letter country codes (e.g., `JP,US,KR`).
+- `--min-speed`: Minimum link speed in Mbps (default: `0`).
+- `--max-ping`: Maximum ping in milliseconds (default: `0` / unlimited).
+- `--sort`: Sorting criterion: `score` (default), `speed`, or `ping`.
+- `--output-dir`: Output directory for generated files (default: `output`).
+- `--url`: API URL for VPN Gate CSV endpoint.
+- `--retries` / `--timeout`: Network retry attempts and timeout in seconds.
+
+---
+
+## GitHub Actions Automation
+
+- **Schedule**: Automatically runs every day at `00:00 UTC` (cron: `0 0 * * *`).
+- **Manual Trigger**: Go to **Actions → Update VPN configs → Run workflow** to manually trigger an update with custom node limits or country filters.
+- **Auto Commit**: Updates are validated and committed directly to the `main` branch.
+
+---
+
+## How It Works
+
+1. Fetches the live server list from `https://www.vpngate.net/api/iphone/`.
+2. Filters servers with valid `OpenVPN_ConfigData_Base64` fields, sorts them by score/speed, and eliminates duplicates.
+3. Decodes the `.ovpn` profile to extract IP addresses, ports, transport protocol (`udp`/`tcp`), and embedded CA certificate, client certificate, and private key.
+4. Generates structured JSON for sing-box (`openvpn-client` endpoints) and YAML for mihomo (`openvpn` proxies) with multi-level proxy groups.
+
+---
+
+## Disclaimer
+
+This repository is for educational and research purposes only. VPN Gate is an academic experiment project operated by the University of Tsukuba, Japan. Please adhere to local laws and regulations when using this tool.

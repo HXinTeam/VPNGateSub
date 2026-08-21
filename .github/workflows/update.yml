@@ -1,0 +1,63 @@
+name: Update VPN configs
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max number of nodes (0 = all)"
+        required: false
+        default: "30"
+      countries:
+        description: "Country code filter, e.g. JP,US (empty = all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-vpn-configs
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch VPN Gate and build configs
+        run: |
+          python scripts/fetch_vpngate.py \
+            --output-dir output \
+            --limit "${{ github.event.inputs.limit || '30' }}" \
+            --countries "${{ github.event.inputs.countries }}"
+
+      - name: Validate generated files
+        run: |
+          python - <<'EOF'
+          import json, re, pathlib
+          sb = json.loads(re.sub(r"^\s*//.*$", "", pathlib.Path("output/singbox.json").read_text(encoding="utf-8"), flags=re.M))
+          assert sb["endpoints"], "no endpoints in singbox.json"
+          text = pathlib.Path("output/mihomo.yaml").read_text(encoding="utf-8")
+          assert "type: openvpn" in text, "no openvpn proxies in mihomo.yaml"
+          print("validation ok:", len(sb["endpoints"]), "nodes")
+          EOF
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add output/
+          git diff --cached --quiet && echo "No changes to commit" || {
+            git commit -m "chore: refresh VPN Gate nodes ($(date -u '+%Y-%m-%d %H:%M UTC'))"
+            git push
+          }

@@ -93,6 +93,13 @@ def to_int(value, default=0) -> int:
         return default
 
 
+def country_flag(cc: str) -> str:
+    cc = (cc or "").strip().upper()
+    if len(cc) == 2 and cc.isalpha():
+        return chr(0x1F1E6 + ord(cc[0]) - ord("A")) + chr(0x1F1E6 + ord(cc[1]) - ord("A"))
+    return "🌐"
+
+
 def normalize_proto(token: str) -> str:
     token = (token or "").strip().lower()
     for suffix in ("4", "6"):
@@ -210,9 +217,10 @@ def build_nodes(rows: list, args) -> list:
     counters = {}
     for node in nodes:
         cc = node["country_code"]
+        flag = country_flag(cc)
         idx = counters.get(cc, 0) + 1
         counters[cc] = idx
-        node["name"] = f"{cc}-{idx:02d}"
+        node["name"] = f"{flag} {cc}-{idx:02d}"
 
     log(f"[info] usable OpenVPN nodes: {len(nodes)} (skipped {skipped})")
     return nodes
@@ -263,8 +271,8 @@ def build_singbox(nodes: list) -> dict:
         tags.append(node["name"])
         country_nodes.setdefault(node["country_code"], []).append(node["name"])
 
-    country_autos = [f"{cc}-AUTO" for cc in country_nodes]
-    country_selects = [cc for cc in country_nodes]
+    country_autos = [f"{country_flag(cc)} {cc}-AUTO" for cc in country_nodes]
+    country_selects = [f"{country_flag(cc)} {cc}" for cc in country_nodes]
 
     outbounds = [
         {
@@ -285,9 +293,12 @@ def build_singbox(nodes: list) -> dict:
     ]
 
     for cc, c_tags in country_nodes.items():
+        flag = country_flag(cc)
+        tag_auto = f"{flag} {cc}-AUTO"
+        tag_select = f"{flag} {cc}"
         outbounds.append({
             "type": "urltest",
-            "tag": f"{cc}-AUTO",
+            "tag": tag_auto,
             "outbounds": c_tags,
             "url": "https://www.gstatic.com/generate_204",
             "interval": "10m",
@@ -295,9 +306,9 @@ def build_singbox(nodes: list) -> dict:
         })
         outbounds.append({
             "type": "selector",
-            "tag": cc,
-            "outbounds": [f"{cc}-AUTO", *c_tags],
-            "default": f"{cc}-AUTO",
+            "tag": tag_select,
+            "outbounds": [tag_auto, *c_tags],
+            "default": tag_auto,
             "interrupt_exist_connections": True,
         })
 
@@ -382,8 +393,8 @@ def build_mihomo(nodes: list) -> str:
         country_nodes.setdefault(node["country_code"], []).append(node["name"])
 
     names = [n["name"] for n in nodes]
-    country_autos = [f"{cc}-AUTO" for cc in country_nodes]
-    country_selects = [cc for cc in country_nodes]
+    country_autos = [f"{country_flag(cc)} {cc}-AUTO" for cc in country_nodes]
+    country_selects = [f"{country_flag(cc)} {cc}" for cc in country_nodes]
 
     lines += [
         "",
@@ -409,8 +420,11 @@ def build_mihomo(nodes: list) -> str:
     lines += [f"      - {yq(name)}" for name in names]
 
     for cc, c_names in country_nodes.items():
+        flag = country_flag(cc)
+        name_auto = f"{flag} {cc}-AUTO"
+        name_select = f"{flag} {cc}"
         lines += [
-            f"  - name: {yq(f'{cc}-AUTO')}",
+            f"  - name: {yq(name_auto)}",
             "    type: url-test",
             "    url: https://www.gstatic.com/generate_204",
             "    interval: 300",
@@ -419,10 +433,10 @@ def build_mihomo(nodes: list) -> str:
         ]
         lines += [f"      - {yq(name)}" for name in c_names]
         lines += [
-            f"  - name: {yq(cc)}",
+            f"  - name: {yq(name_select)}",
             "    type: select",
             "    proxies:",
-            f"      - {yq(f'{cc}-AUTO')}",
+            f"      - {yq(name_auto)}",
         ]
         lines += [f"      - {yq(name)}" for name in c_names]
 

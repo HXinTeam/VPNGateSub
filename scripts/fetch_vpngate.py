@@ -206,15 +206,12 @@ def build_nodes(rows: list, args) -> list:
             "sessions": to_int(row.get("NumVpnSessions")),
         })
 
-    used = set()
-    for i, node in enumerate(nodes, 1):
-        name = f"{node['name']}-{i:02d} ({node['speed_mbps']}Mbps)"
-        unique, n = name, 2
-        while unique in used:
-            unique = f"{name}#{n}"
-            n += 1
-        node["name"] = unique
-        used.add(unique)
+    counters = {}
+    for node in nodes:
+        cc = node["name"]
+        idx = counters.get(cc, 0) + 1
+        counters[cc] = idx
+        node["name"] = f"{cc}-{idx:02d}"
 
     log(f"[info] usable OpenVPN nodes: {len(nodes)} (skipped {skipped})")
     return nodes

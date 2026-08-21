@@ -5,7 +5,7 @@
 ## 使用方法
 
 1. Fork / 推送本仓库到 GitHub（Actions 默认开启）。
-2. 工作流每 6 小时自动运行一次，也可在 **Actions → Update VPN configs → Run workflow** 手动触发（可指定节点数量与国家过滤）。
+2. 工作流每日自动运行一次（UTC 00:00，即北京时间 08:00），也可在 **Actions → Update VPN configs → Run workflow** 手动触发（可指定节点数量与国家过滤）。
 3. 运行成功后，`output/` 目录中的配置文件会自动提交，直接用 raw 链接订阅：
 
    ```

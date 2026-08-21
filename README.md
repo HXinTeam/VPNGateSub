@@ -25,7 +25,7 @@
 仅需 Python 3.9+（纯标准库，无第三方依赖）：
 
 ```bash
-python scripts/fetch_vpngate.py                       # 默认取评分前 30 个节点
+python scripts/fetch_vpngate.py                       # 默认取全部节点
 python scripts/fetch_vpngate.py --limit 50            # 前 50 个节点
 python scripts/fetch_vpngate.py --countries JP,US     # 只保留日本/美国
 python scripts/fetch_vpngate.py --min-speed 10 --max-ping 300   # 速度/延迟过滤

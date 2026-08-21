@@ -158,7 +158,7 @@ def build_nodes(rows: list, args) -> list:
 
     candidates.sort(key=lambda item: (item[0], item[1]))
     for _, _, row in candidates:
-        if len(nodes) >= args.limit:
+        if args.limit and len(nodes) >= args.limit:
             break
         try:
             info = parse_ovpn(row["OpenVPN_ConfigData_Base64"])
@@ -385,7 +385,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate sing-box/mihomo configs from VPN Gate")
     parser.add_argument("--url", default=DEFAULT_API_URL, help="VPN Gate CSV API URL")
     parser.add_argument("--output-dir", default="output", help="directory for generated configs")
-    parser.add_argument("--limit", type=int, default=30, help="max number of nodes (0 = all)")
+    parser.add_argument("--limit", type=int, default=0, help="max number of nodes (0 = all)")
     parser.add_argument("--min-speed", type=float, default=0, help="minimum link speed in Mbps")
     parser.add_argument("--max-ping", type=int, default=0, help="maximum ping in ms (0 = unlimited)")
     parser.add_argument("--countries", default="", help="comma separated country codes filter, e.g. JP,US")

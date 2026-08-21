@@ -1,5 +1,7 @@
 # VPNGateSub
 
+**中文** | [English](README_EN.md)
+
 自动从 [VPN Gate](https://www.vpngate.net) 公共节点列表拉取支持 **OpenVPN** 的服务器，并生成 **sing-box** 与 **mihomo (Clash.Meta)** 配置文件，由 GitHub Actions 定时更新。
 
 ## 使用方法

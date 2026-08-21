@@ -185,9 +185,10 @@ def build_nodes(rows: list, args) -> list:
         seen.add(dedupe_key)
 
         use_cert = bool(info["cert"] and info["key"])
-        name_base = f"{row.get('CountryShort') or 'VPN'}"
+        cc = (row.get("CountryShort") or "VPN").upper()
         nodes.append({
-            "name": name_base,
+            "name": cc,
+            "country_code": cc,
             "country_long": row.get("CountryLong") or "",
             "server": server,
             "port": info["port"],
@@ -208,7 +209,7 @@ def build_nodes(rows: list, args) -> list:
 
     counters = {}
     for node in nodes:
-        cc = node["name"]
+        cc = node["country_code"]
         idx = counters.get(cc, 0) + 1
         counters[cc] = idx
         node["name"] = f"{cc}-{idx:02d}"
@@ -229,6 +230,7 @@ def yaml_pem(key: str, pem: str, indent: str = "    ") -> list:
 
 def build_singbox(nodes: list) -> dict:
     endpoints, tags = [], []
+    country_nodes = {}
     for node in nodes:
         tls = {"certificate": node["ca"]}
         if node["cert"] and node["key"]:
@@ -259,12 +261,16 @@ def build_singbox(nodes: list) -> dict:
             endpoint["compression_lzo"] = node["comp_lzo"]
         endpoints.append(endpoint)
         tags.append(node["name"])
+        country_nodes.setdefault(node["country_code"], []).append(node["name"])
+
+    country_autos = [f"{cc}-AUTO" for cc in country_nodes]
+    country_selects = [cc for cc in country_nodes]
 
     outbounds = [
         {
             "type": "selector",
             "tag": "PROXY",
-            "outbounds": ["AUTO", *tags],
+            "outbounds": ["AUTO", *country_autos, *country_selects, "direct", *tags],
             "default": "AUTO",
             "interrupt_exist_connections": True,
         },
@@ -276,8 +282,26 @@ def build_singbox(nodes: list) -> dict:
             "interval": "10m",
             "tolerance": 50,
         },
-        {"type": "direct", "tag": "direct"},
     ]
+
+    for cc, c_tags in country_nodes.items():
+        outbounds.append({
+            "type": "urltest",
+            "tag": f"{cc}-AUTO",
+            "outbounds": c_tags,
+            "url": "https://www.gstatic.com/generate_204",
+            "interval": "10m",
+            "tolerance": 50,
+        })
+        outbounds.append({
+            "type": "selector",
+            "tag": cc,
+            "outbounds": [f"{cc}-AUTO", *c_tags],
+            "default": f"{cc}-AUTO",
+            "interrupt_exist_connections": True,
+        })
+
+    outbounds.append({"type": "direct", "tag": "direct"})
     if not endpoints:
         outbounds = [{"type": "direct", "tag": "direct"}]
 
@@ -331,6 +355,7 @@ def build_mihomo(nodes: list) -> str:
         "proxies:",
     ]
 
+    country_nodes = {}
     for node in nodes:
         lines.append(f"  - name: {yq(node['name'])}")
         lines.append("    type: openvpn")
@@ -354,8 +379,12 @@ def build_mihomo(nodes: list) -> str:
             lines.append(f"    comp-lzo: \"{node['comp_lzo']}\"")
         lines.append("")
         lines.append(f"# {node['country_long']} | {node['sessions']} users online")
+        country_nodes.setdefault(node["country_code"], []).append(node["name"])
 
     names = [n["name"] for n in nodes]
+    country_autos = [f"{cc}-AUTO" for cc in country_nodes]
+    country_selects = [cc for cc in country_nodes]
+
     lines += [
         "",
         "proxy-groups:",
@@ -364,7 +393,11 @@ def build_mihomo(nodes: list) -> str:
         "    proxies:",
         "      - AUTO",
     ]
+    lines += [f"      - {yq(ca)}" for ca in country_autos]
+    lines += [f"      - {yq(cs)}" for cs in country_selects]
+    lines += ["      - DIRECT"]
     lines += [f"      - {yq(name)}" for name in names]
+
     lines += [
         "  - name: AUTO",
         "    type: url-test",
@@ -374,6 +407,25 @@ def build_mihomo(nodes: list) -> str:
         "    proxies:",
     ]
     lines += [f"      - {yq(name)}" for name in names]
+
+    for cc, c_names in country_nodes.items():
+        lines += [
+            f"  - name: {yq(f'{cc}-AUTO')}",
+            "    type: url-test",
+            "    url: https://www.gstatic.com/generate_204",
+            "    interval: 300",
+            "    tolerance: 50",
+            "    proxies:",
+        ]
+        lines += [f"      - {yq(name)}" for name in c_names]
+        lines += [
+            f"  - name: {yq(cc)}",
+            "    type: select",
+            "    proxies:",
+            f"      - {yq(f'{cc}-AUTO')}",
+        ]
+        lines += [f"      - {yq(name)}" for name in c_names]
+
     lines += ["", "rules:", f"  - MATCH,{'PROXY' if names else 'DIRECT'}", ""]
     return "\n".join(lines)
 

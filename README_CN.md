@@ -12,7 +12,7 @@
   - **sing-box**（≥ 1.14）：完整配置，采用现代 `openvpn-client` endpoint 格式，支持 mixed 入站、DNS 劫持及 selector/urltest 分组。
   - **mihomo (Clash.Meta)**：标准配置，证书内联（CA/cert/key），支持 select 与 url-test 策略组。
 - **纯标准库实现**：无任何第三方 Python 依赖。
-- **每日定时更新**：通过 GitHub Actions 每天 UTC 00:00 自动更新。
+- **定时更新**：通过 GitHub Actions 每 6 小时自动更新。
 
 ---
 
@@ -21,8 +21,8 @@
 在客户端中直接使用本仓库的 raw 链接进行订阅：
 
 ```
-https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/output/singbox.json
-https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/output/mihomo.yaml
+https://raw.githubusercontent.com/HXinTeam/VPNGateSub/main/output/singbox.json
+https://raw.githubusercontent.com/HXinTeam/VPNGateSub/main/output/mihomo.yaml
 ```
 
 ---
@@ -72,7 +72,7 @@ python scripts/fetch_vpngate.py --sort speed
 
 ## GitHub Actions 自动更新
 
-- **定时触发**：每日 UTC 00:00 自动运行（北京时间 08:00）。
+- **定时触发**：每 6 小时自动运行一次（cron: `0 */6 * * *`）。
 - **手动触发**：前往 **Actions → Update VPN configs → Run workflow** 可手动触发更新并传入自定义参数。
 - **自动提交**：生成并通过校验后自动推送到 `main` 分支。
 

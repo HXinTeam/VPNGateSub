@@ -2,7 +2,7 @@
 
 **English** | [中文](README_CN.md)
 
-Automatically fetch public [VPN Gate](https://www.vpngate.net) servers that support **OpenVPN**, parse embedded certificates, and generate **sing-box** and **mihomo (Clash.Meta)** configuration files. Automated and updated daily via GitHub Actions.
+Automatically fetch public [VPN Gate](https://www.vpngate.net) servers that support **OpenVPN**, parse embedded certificates, and generate **sing-box** and **mihomo (Clash.Meta)** configuration files. Automated and updated every 6 hours via GitHub Actions.
 
 ## Features
 
@@ -12,7 +12,7 @@ Automatically fetch public [VPN Gate](https://www.vpngate.net) servers that supp
   - **sing-box** (≥ 1.14): Full configuration with modern `openvpn-client` endpoints, mixed inbound, DNS hijacking, and selector/urltest outbound groups.
   - **mihomo (Clash.Meta)**: Standard configuration with inline CA/cert/key certificates, URL-test and select proxy groups.
 - **Zero Third-Party Dependencies**: The generator script uses only the Python 3 standard library.
-- **Daily Automated Updates**: Runs automatically via GitHub Actions every day at 00:00 UTC.
+- **Automated Updates**: Runs automatically via GitHub Actions every 6 hours.
 
 ---
 
@@ -21,8 +21,8 @@ Automatically fetch public [VPN Gate](https://www.vpngate.net) servers that supp
 Subscribe directly in your client using the raw URLs from this repository:
 
 ```
-https://raw.githubusercontent.com/<YourUsername>/<RepoName>/main/output/singbox.json
-https://raw.githubusercontent.com/<YourUsername>/<RepoName>/main/output/mihomo.yaml
+https://raw.githubusercontent.com/HXinTeam/VPNGateSub/main/output/singbox.json
+https://raw.githubusercontent.com/HXinTeam/VPNGateSub/main/output/mihomo.yaml
 ```
 
 ---
@@ -72,7 +72,7 @@ python scripts/fetch_vpngate.py --sort speed
 
 ## GitHub Actions Automation
 
-- **Schedule**: Automatically runs every day at `00:00 UTC` (cron: `0 0 * * *`).
+- **Schedule**: Automatically runs every 6 hours (cron: `0 */6 * * *`).
 - **Manual Trigger**: Go to **Actions → Update VPN configs → Run workflow** to manually trigger an update with custom node limits or country filters.
 - **Auto Commit**: Updates are validated and committed directly to the `main` branch.
 
